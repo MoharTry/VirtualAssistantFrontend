@@ -1,20 +1,22 @@
 import { useRef, useState } from "react";
 import { useChat } from "../hooks/useChat";
+import "./UI.css";
 
 export const UI = ({ hidden, ...props }) => {
   const input = useRef();
   const { chat, loading, cameraZoomed, setCameraZoomed, message } = useChat();
   const [backgroundType, setBackgroundType] = useState('default');
   const [transcription, setTranscription] = useState(''); // State for the transcription
-
+  const [isVoiceInputActive, setIsVoiceInputActive] = useState(false); // State for voice input animation
+  
   const sendMessage = () => {
     const text = input.current.value || transcription;
-    if (!loading && !message) {
+    if (!loading && !message && text) {
       chat(text);
       input.current.value = "";
       setTranscription('');
-  }
-};
+    }
+  };
 
   const toggleBackground = () => {
     const body = document.querySelector("body");
@@ -48,15 +50,23 @@ export const UI = ({ hidden, ...props }) => {
 
   const startVoiceInput = async () => {
     try {
+      setIsListening(true);
       const response = await fetch('/api/speech-to-text', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ silence_limit: 5 }), // You can pass custom parameters if needed
+        body: JSON.stringify({ silence_limit: 5 }),
       });
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      setTranscription(data.transcription);
     } catch (error) {
       console.error("Error during voice input:", error);
+    } finally {
+      setIsListening(false);
     }
   };
 
@@ -150,14 +160,14 @@ export const UI = ({ hidden, ...props }) => {
           </button>
         </div>
         <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
-          <button
-            disabled={loading || message}
+        <button
+            disabled={loading || message || isVoiceInputActive}
             onClick={startVoiceInput}
             className={`bg-pink-500 hover:bg-pink-600 text-white p-4 px-10 font-semibold uppercase rounded-md ${
-              loading || message ? "cursor-not-allowed opacity-30" : ""
-            }`}
+              isVoiceInputActive ? "pulsing-button" : ""
+            } ${loading || message ? "cursor-not-allowed opacity-30" : ""}`}
           >
-            Voice Input
+            {isVoiceInputActive ? "Listening..." : "Voice Input"}
           </button>
         </div>
       </div>

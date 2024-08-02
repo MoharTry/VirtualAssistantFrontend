@@ -233,6 +233,17 @@ export function Avatar(props) {
     });
   });
 
+  useEffect(() => {
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        if (child.name.includes("Eyebrow")) { // Replace with the actual name
+          child.material.color.set(0x000000); // Set to desired color
+        }
+      }
+    });
+  }, [scene]);
+  
+
   useControls("FacialExpressions", {
     chat: button(() => chat()),
     winkLeft: button(() => {
