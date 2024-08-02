@@ -1,17 +1,65 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useChat } from "../hooks/useChat";
 
 export const UI = ({ hidden, ...props }) => {
   const input = useRef();
   const { chat, loading, cameraZoomed, setCameraZoomed, message } = useChat();
+  const [backgroundType, setBackgroundType] = useState('default');
+  const [transcription, setTranscription] = useState(''); // State for the transcription
 
   const sendMessage = () => {
-    const text = input.current.value;
+    const text = input.current.value || transcription;
     if (!loading && !message) {
       chat(text);
       input.current.value = "";
+      setTranscription('');
+  }
+};
+
+  const toggleBackground = () => {
+    const body = document.querySelector("body");
+    if (backgroundType === 'default') {
+      body.classList.add("greenScreen");
+      setBackgroundType('greenScreen');
+    } else if (backgroundType === 'greenScreen') {
+      body.classList.remove("greenScreen");
+      body.style.backgroundImage = 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)';
+      setBackgroundType('gradient');
+    } else {
+      body.classList.remove("greenScreen");
+      body.style.backgroundImage = '';
+      setBackgroundType('default');
     }
   };
+
+  const handleCustomUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        document.body.style.backgroundImage = `url(${event.target.result})`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        setBackgroundType('custom');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const startVoiceInput = async () => {
+    try {
+      const response = await fetch('/api/speech-to-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ silence_limit: 5 }), // You can pass custom parameters if needed
+      });
+    } catch (error) {
+      console.error("Error during voice input:", error);
+    }
+  };
+
   if (hidden) {
     return null;
   }
@@ -19,10 +67,6 @@ export const UI = ({ hidden, ...props }) => {
   return (
     <>
       <div className="fixed top-0 left-0 right-0 bottom-0 z-10 flex justify-between p-4 flex-col pointer-events-none">
-        <div className="self-start backdrop-blur-md bg-white bg-opacity-50 p-4 rounded-lg">
-          <h1 className="font-black text-xl">My Virtual GF</h1>
-          <p>I will always love you ❤️</p>
-        </div>
         <div className="w-full flex flex-col items-end justify-center gap-4">
           <button
             onClick={() => setCameraZoomed(!cameraZoomed)}
@@ -61,14 +105,7 @@ export const UI = ({ hidden, ...props }) => {
             )}
           </button>
           <button
-            onClick={() => {
-              const body = document.querySelector("body");
-              if (body.classList.contains("greenScreen")) {
-                body.classList.remove("greenScreen");
-              } else {
-                body.classList.add("greenScreen");
-              }
-            }}
+            onClick={toggleBackground}
             className="pointer-events-auto bg-pink-500 hover:bg-pink-600 text-white p-4 rounded-md"
           >
             <svg
@@ -85,26 +122,42 @@ export const UI = ({ hidden, ...props }) => {
               />
             </svg>
           </button>
-        </div>
-        <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
           <input
-            className="w-full placeholder:text-gray-800 placeholder:italic p-4 rounded-md bg-opacity-50 bg-white backdrop-blur-md"
-            placeholder="Type a message..."
-            ref={input}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                sendMessage();
-              }
-            }}
+            type="file"
+            id="imageInput"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleCustomUpload}
           />
           <button
+            onClick={() => document.getElementById('imageInput').click()}
+            className="pointer-events-auto bg-pink-500 hover:bg-pink-600 text-white p-4 rounded-md"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-6 h-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
+          <button
             disabled={loading || message}
-            onClick={sendMessage}
+            onClick={startVoiceInput}
             className={`bg-pink-500 hover:bg-pink-600 text-white p-4 px-10 font-semibold uppercase rounded-md ${
               loading || message ? "cursor-not-allowed opacity-30" : ""
             }`}
           >
-            Send
+            Voice Input
           </button>
         </div>
       </div>

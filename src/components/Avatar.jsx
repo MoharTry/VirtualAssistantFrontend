@@ -115,6 +115,15 @@ export function Avatar(props) {
 
   const [lipsync, setLipsync] = useState();
 
+
+  useEffect(() => {
+    if (materials.Wolf3D_Hair) {
+      materials.Wolf3D_Hair.color = new THREE.Color(0x000000); // Red color
+    }
+  }, [materials.Wolf3D_Hair]);
+
+  
+
   useEffect(() => {
     console.log(message);
     if (!message) {
