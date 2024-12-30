@@ -1,5 +1,5 @@
 
-The backend is [here](https://github.com/wass08/r3f-virtual-girlfriend-backend).
+The backend is [here](https://github.com/MoharTry/VirtualAssistantBackend).
 
 Start the development server with
 ```
